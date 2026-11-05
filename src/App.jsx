@@ -56,6 +56,7 @@ function Storefront() {
   const [historySearchMessage, setHistorySearchMessage] = useState('');
   const [historySearchBusy, setHistorySearchBusy] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [selectedProductImage, setSelectedProductImage] = useState(null);
   const [customerSession, setCustomerSession] = useState(null);
   const [customerCode, setCustomerCode] = useState('');
   const [customerLoading, setCustomerLoading] = useState(Boolean(supabase));
@@ -191,12 +192,13 @@ function Storefront() {
   }, [products, productsLoaded]);
 
   useEffect(() => {
-    if (!cartOpen && !checkoutOpen && !orderConfirmation) return undefined;
+    if (!cartOpen && !checkoutOpen && !orderConfirmation && !selectedProductImage) return undefined;
     const handleKeyDown = event => {
       if (event.key === 'Escape') {
         setCartOpen(false);
         setCheckoutOpen(false);
         setOrderConfirmation(null);
+        setSelectedProductImage(null);
       }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -205,7 +207,7 @@ function Storefront() {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
     };
-  }, [cartOpen, checkoutOpen, orderConfirmation]);
+  }, [cartOpen, checkoutOpen, orderConfirmation, selectedProductImage]);
 
   const categories = useMemo(() => ['All', ...new Set(products.map(product => product.category).filter(Boolean))], [products]);
   const visibleProducts = useMemo(() => products.filter(product =>
@@ -445,7 +447,7 @@ function Storefront() {
             </div>
             <div className="product-grid">
               {visibleProducts.length ? visibleProducts.map(product => <article className="product-card" key={product.id}>
-                <div className="product-image">{product.image_url ? <img src={product.image_url} alt={product.name} loading="lazy" /> : <div className="image-placeholder"><Store size={23} aria-hidden="true" /><span>KBH NIGHTS</span></div>}</div>
+                <div className="product-image">{product.image_url ? <button type="button" className="product-image-button" onClick={() => setSelectedProductImage(product.image_url)} aria-label={`Open larger image for ${product.name}`}><img src={product.image_url} alt={product.name} loading="lazy" /></button> : <div className="image-placeholder"><Store size={23} aria-hidden="true" /><span>KBH NIGHTS</span></div>}</div>
                 <div className="product-info">
                   <div className="product-title-row"><h3>{product.name}</h3><span className="product-price">{formatPrice(product.price)}</span></div>
                   {product.category && <p className="product-category">{product.category}</p>}
@@ -522,7 +524,7 @@ function Storefront() {
           <div className="cart-heading"><div><p className="eyebrow">Your picks</p><h2 id="cart-title">Bag <span className="cart-heading-count">{cartCount}</span></h2></div><button className="icon-button" type="button" onClick={() => setCartOpen(false)} aria-label="Close bag"><X size={19} /></button></div>
           <div className="cart-lines">
             {cartLines.length === 0 ? <p className="cart-empty">Your bag is empty. Add a snack to get started.</p> : cartLines.map(product => <article className="cart-line" key={product.id}>
-              {product.image_url ? <img src={product.image_url} alt="" /> : <div className="cart-line-placeholder"><Store size={17} aria-hidden="true" /></div>}
+              {product.image_url ? <button type="button" className="cart-line-image-button" onClick={() => setSelectedProductImage(product.image_url)} aria-label={`Open larger image for ${product.name}`}><img src={product.image_url} alt={product.name} /></button> : <div className="cart-line-placeholder"><Store size={17} aria-hidden="true" /></div>}
               <div className="cart-line-info"><h3>{product.name}</h3><span>{formatPrice(product.price)} each</span><strong>{formatPrice(Number(product.price) * product.quantity)}</strong></div>
               <div className="quantity-control" aria-label={`${product.name} quantity`}><button type="button" onClick={() => changeCartQuantity(product.id, -1)} aria-label={`Remove one ${product.name}`}><Minus size={13} /></button><span>{product.quantity}</span><button type="button" onClick={() => changeCartQuantity(product.id, 1)} aria-label={`Add one ${product.name}`}><Plus size={13} /></button></div>
             </article>)}
@@ -571,6 +573,12 @@ function Storefront() {
           <div className="cart-subtotal order-preview-total"><span>Total</span><strong>{formatPrice(orderConfirmation.total)}</strong></div>
           {orderConfirmation.paymentUrl ? <button className="button button-primary order-preview-close" type="button" onClick={() => window.location.assign(orderConfirmation.paymentUrl)}>Open UPI app</button> : <button className="button button-primary order-preview-close" type="button" onClick={() => setOrderConfirmation(null)}>Back to store</button>}
         </section>
+      </div>}
+      {selectedProductImage && <div className="image-preview-overlay" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedProductImage(null); }}>
+        <div className="image-preview-dialog" role="dialog" aria-modal="true" aria-label="Product image preview">
+          <button className="icon-button image-preview-close" type="button" onClick={() => setSelectedProductImage(null)} aria-label="Close product image"><X size={19} /></button>
+          <img src={selectedProductImage} alt="Selected product preview" />
+        </div>
       </div>}
     </>
   );
